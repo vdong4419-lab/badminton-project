@@ -1,0 +1,37 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: badminton_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: dat_san_cau_long
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - badminton-net
+
+  backend-app:
+    build: .
+    container_name: badminton_backend
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/dat_san_cau_long?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=123456
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+    depends_on:
+      - mysql-db
+    networks:
+      - badminton-net
+
+volumes:
+  mysql_data:
+
+networks:
+  badminton-net:
+    driver: bridge
