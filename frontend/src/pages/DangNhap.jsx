@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { layThongBaoLoi } from '../services/api';
 
 export default function DangNhap() {
   const [email, setEmail] = useState('');
   const [matKhau, setMatKhau] = useState('');
   const [thongBaoLoi, setThongBaoLoi] = useState('');
+  const [dangGui, setDangGui] = useState(false);
   const navigate = useNavigate();
 
   const handleDangNhap = async (e) => {
     e.preventDefault();
+    if (dangGui) return;
+    setDangGui(true);
     setThongBaoLoi('');
     try {
-      const response = await api.post('/xac-thuc/dang-nhap', { email, matKhau });
+      const response = await api.post('/xac-thuc/dang-nhap', { email: email.trim().toLowerCase(), matKhau });
       const { token, email: userEmail, hoTen } = response.data;
       
       localStorage.setItem('token', token);
@@ -22,8 +25,9 @@ export default function DangNhap() {
       alert('Đăng nhập thành công!');
       navigate('/');
     } catch (error) {
-      const errorMessage = error.response?.data;
-      setThongBaoLoi(typeof errorMessage === 'string' ? errorMessage : 'Email hoặc mật khẩu không chính xác!');
+      setThongBaoLoi(layThongBaoLoi(error, 'Không thể đăng nhập. Vui lòng thử lại.'));
+    } finally {
+      setDangGui(false);
     }
   };
 
@@ -69,9 +73,10 @@ export default function DangNhap() {
 
           <button
             type="submit"
+            disabled={dangGui}
             className="w-full py-3 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm shadow-md transition duration-200"
           >
-            Đăng Nhập
+            {dangGui ? 'Đang đăng nhập...' : 'Đăng Nhập'}
           </button>
 
           <div className="text-center mt-4">

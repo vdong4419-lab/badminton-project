@@ -1,6 +1,7 @@
 package com.dong.dat_san.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -46,6 +47,9 @@ public class NguoiDung {
     public void setEmail(String email) { this.email = email; }
     public String getSoDienThoai() { return soDienThoai; }
     public void setSoDienThoai(String soDienThoai) { this.soDienThoai = soDienThoai; }
+    @JsonIgnore
     public String getMatKhauBam() { return matKhauBam; }
     public void setMatKhauBam(String matKhauBam) { this.matKhauBam = matKhauBam; }
+    public boolean isDangHoatDong() { return dangHoatDong; }
+    public void setDangHoatDong(boolean dangHoatDong) { this.dangHoatDong = dangHoatDong; }
 }

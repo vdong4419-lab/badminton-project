@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { layThongBaoLoi } from '../services/api';
 
 export default function DangKy() {
   const [hoTen, setHoTen] = useState('');
@@ -8,25 +8,29 @@ export default function DangKy() {
   const [matKhau, setMatKhau] = useState('');
   const [soDienThoai, setSoDienThoai] = useState('');
   const [thongBaoLoi, setThongBaoLoi] = useState('');
+  const [dangGui, setDangGui] = useState(false);
   const navigate = useNavigate();
 
   const handleDangKy = async (e) => {
     e.preventDefault();
+    if (dangGui) return;
+    setDangGui(true);
     setThongBaoLoi('');
     try {
       // Gọi API đăng ký backend (endpoint /api/xac-thuc/dang-ky)
       await api.post('/xac-thuc/dang-ky', {
-        hoTen,
-        email,
+        hoTen: hoTen.trim(),
+        email: email.trim().toLowerCase(),
         matKhau,
-        soDienThoai
+        soDienThoai: soDienThoai.trim()
       });
       
       alert('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/dang-nhap');
     } catch (error) {
-      const errorMessage = error.response?.data;
-      setThongBaoLoi(typeof errorMessage === 'string' ? errorMessage : 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin!');
+      setThongBaoLoi(layThongBaoLoi(error, 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin!'));
+    } finally {
+      setDangGui(false);
     }
   };
 
@@ -74,6 +78,8 @@ export default function DangKy() {
             <label className="block mb-1.5 text-xs font-semibold text-gray-600">Mật khẩu</label>
             <input
               type="password"
+              minLength={8}
+              maxLength={72}
               value={matKhau}
               onChange={(e) => setMatKhau(e.target.value)}
               required
@@ -96,9 +102,10 @@ export default function DangKy() {
 
           <button
             type="submit"
+            disabled={dangGui}
             className="w-full py-3 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm shadow-md transition duration-200"
           >
-            Đăng Ký
+            {dangGui ? 'Đang đăng ký...' : 'Đăng Ký'}
           </button>
 
           <div className="text-center mt-4">

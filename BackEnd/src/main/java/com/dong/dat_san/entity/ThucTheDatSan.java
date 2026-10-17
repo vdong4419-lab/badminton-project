@@ -31,6 +31,9 @@ public class ThucTheDatSan {
     @Column(name = "ly_do_huy", length = 500)
     private String lyDoHuy;
 
+    @Column(name = "ngay_huy")
+    private LocalDateTime ngayHuy;
+
     @Column(name = "ngay_tao", nullable = false, updatable = false)
     private LocalDateTime ngayTao = LocalDateTime.now();
 
@@ -45,6 +48,7 @@ public class ThucTheDatSan {
     public String getGhiChu() { return ghiChu; }
     public String getLyDoHuy() { return lyDoHuy; }
     public LocalDateTime getNgayTao() { return ngayTao; }
+    public LocalDateTime getNgayHuy() { return ngayHuy; }
 
     // Setters
     public void setId(Long id) { this.id = id; }
@@ -55,4 +59,5 @@ public class ThucTheDatSan {
     public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
     public void setLyDoHuy(String lyDoHuy) { this.lyDoHuy = lyDoHuy; }
     public void setNgayTao(LocalDateTime ngayTao) { this.ngayTao = ngayTao; }
+    public void setNgayHuy(LocalDateTime ngayHuy) { this.ngayHuy = ngayHuy; }
 }

@@ -1,35 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { layThongBaoLoi } from '../services/api';
+import { ngayHomNay, tienViet } from '../utils/hienThi';
 
 export default function TrangDatLich() {
   const { sanId } = useParams();
   const navigate = useNavigate();
   
-  const [ngayChon, setNgayChon] = useState(new Date().toISOString().split('T')[0]);
+  const [ngayChon, setNgayChon] = useState(ngayHomNay);
   const [danhSachSuatTrong, setDanhSachSuatTrong] = useState([]);
   const [suatDaChọn, setSuatDaChọn] = useState([]);
   const [dangTai, setDangTai] = useState(false);
   const [thongBaoLoi, setThongBaoLoi] = useState('');
-
-  const taiLichTrong = async () => {
-    setDangTai(true);
-    setThongBaoLoi('');
-    try {
-      const response = await api.get('/lich-san/trong', {
-        params: { sanId: sanId || 1, ngay: ngayChon }
-      });
-      setDanhSachSuatTrong(response.data);
-    } catch (error) {
-      setThongBaoLoi('Không thể tải danh sách khung giờ trống.');
-    } finally {
-      setDangTai(false);
-    }
-  };
+  const [dangDat, setDangDat] = useState(false);
+  const [lanTai, setLanTai] = useState(0);
 
   useEffect(() => {
-    taiLichTrong();
-  }, [ngayChon, sanId]);
+    const controller = new AbortController();
+    async function taiLichTrong() {
+      setDangTai(true);
+      setThongBaoLoi('');
+      setDanhSachSuatTrong([]);
+      setSuatDaChọn([]);
+      try {
+        const response = await api.get('/lich-san/trong', {
+          params: { sanId, ngay: ngayChon }, signal: controller.signal,
+        });
+        if (!controller.signal.aborted) setDanhSachSuatTrong(response.data);
+      } catch (error) {
+        if (!controller.signal.aborted) setThongBaoLoi(layThongBaoLoi(error, 'Không thể tải khung giờ trống.'));
+      } finally {
+        if (!controller.signal.aborted) setDangTai(false);
+      }
+    }
+    void taiLichTrong();
+    return () => controller.abort();
+  }, [ngayChon, sanId, lanTai]);
 
   const toggleChonSuat = (lichId) => {
     if (suatDaChọn.includes(lichId)) {
@@ -41,9 +47,10 @@ export default function TrangDatLich() {
 
   const tongTien = danhSachSuatTrong
     .filter(suat => suatDaChọn.includes(suat.id))
-    .reduce((tong, suat) => tong + (suat.gia || 0), 0);
+      .reduce((tong, suat) => tong + Number(suat.gia || 0), 0);
 
   const handleDatSan = async () => {
+    if (dangDat || dangTai) return;
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Vui lòng đăng nhập trước khi đặt sân!');
@@ -56,16 +63,20 @@ export default function TrangDatLich() {
       return;
     }
 
+    setDangDat(true);
     try {
       // Backend tự động lấy thông tin người dùng từ JWT Token (Principal)
       const response = await api.post('/dat-san', {
         danhSachLichSanIds: suatDaChọn
       });
 
-      alert(response.data || 'Đặt sân thành công!');
+      alert('Đặt sân thành công! Mã đơn: ' + response.data.maDat);
       navigate('/lich-su');
     } catch (error) {
-      alert('Lỗi đặt sân: ' + (error.response?.data || error.message));
+      alert(layThongBaoLoi(error, 'Không thể đặt sân. Vui lòng thử lại.'));
+      if (error.response?.status === 409) setLanTai(value => value + 1);
+    } finally {
+      setDangDat(false);
     }
   };
 
@@ -105,6 +116,8 @@ export default function TrangDatLich() {
               <label className="block text-xs font-semibold text-gray-500 mb-1">Chọn ngày chơi</label>
               <input 
                 type="date" 
+                min={ngayHomNay()}
+                disabled={dangDat}
                 value={ngayChon}
                 onChange={(e) => {
                   setNgayChon(e.target.value);
@@ -143,7 +156,7 @@ export default function TrangDatLich() {
                   return (
                     <div 
                       key={suat.id}
-                      onClick={() => toggleChonSuat(suat.id)}
+                      onClick={() => { if (!dangDat) toggleChonSuat(suat.id); }}
                       className={`cursor-pointer p-4 rounded-xl border transition flex flex-col justify-between ${
                         daChon 
                           ? 'bg-emerald-50 border-emerald-500 shadow-sm' 
@@ -161,7 +174,7 @@ export default function TrangDatLich() {
                       </div>
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 text-xs">
                         <span className="text-gray-500">Giá thuê:</span>
-                        <span className="font-bold text-emerald-700">{suat.gia ? suat.gia.toLocaleString() + ' đ' : '0 đ'}</span>
+                        <span className="font-bold text-emerald-700">{tienViet(suat.gia)}</span>
                       </div>
                     </div>
                   );
@@ -173,18 +186,18 @@ export default function TrangDatLich() {
           <div className="bg-white p-5 rounded-2xl shadow-md border border-emerald-100 flex items-center justify-between">
             <div>
               <span className="text-xs text-gray-500 block">Tổng cộng thanh toán:</span>
-              <span className="text-xl font-black text-emerald-600">{tongTien.toLocaleString()} đ</span>
+              <span className="text-xl font-black text-emerald-600">{tienViet(tongTien)}</span>
             </div>
             <button 
               onClick={handleDatSan}
-              disabled={suatDaChọn.length === 0}
+              disabled={suatDaChọn.length === 0 || dangDat || dangTai}
               className={`px-6 py-3 rounded-xl font-bold text-sm shadow-md transition ${
                 suatDaChọn.length === 0 
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                   : 'bg-amber-500 hover:bg-amber-600 text-white'
               }`}
             >
-              Xác Nhận Đặt Sân ➔
+              {dangDat ? 'Đang đặt sân...' : 'Xác Nhận Đặt Sân ➔'}
             </button>
           </div>
         </main>

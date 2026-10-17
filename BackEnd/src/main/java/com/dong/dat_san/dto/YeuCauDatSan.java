@@ -1,10 +1,13 @@
 package com.dong.dat_san.dto;
 
 import java.util.List;
+import jakarta.validation.constraints.*;
 
 public class YeuCauDatSan {
     private Long nguoiDungId;
-    private List<Long> danhSachLichSanIds;
+    @NotEmpty(message = "Vui lòng chọn ít nhất một suất lịch")
+    @Size(max = 48, message = "Mỗi đơn tối đa 48 suất lịch")
+    private List<@NotNull @Positive Long> danhSachLichSanIds;
 
     public YeuCauDatSan() {}
 

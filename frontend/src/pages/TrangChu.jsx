@@ -1,35 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { layThongBaoLoi } from '../services/api';
+import { phienConHan } from '../utils/hienThi';
 
 export default function TrangChu() {
   const navigate = useNavigate();
-  const [ngayDat, setNgayDat] = useState(new Date().toISOString().split('T')[0]);
-  const [khungGio, setKhungGio] = useState('17:00 - 18:00');
-  const [loaiSan, setLoaiSan] = useState('Tất cả các sân');
-  const [userEmail, setUserEmail] = useState(null);
+  const [userEmail, setUserEmail] = useState(() => phienConHan() ? localStorage.getItem('userEmail') : null);
+  const [thongBaoLoi, setThongBaoLoi] = useState('');
   const [danhSachSan, setDanhSachSan] = useState([]);
   const [dangTai, setDangTai] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('userEmail');
-    if (token && email) {
-      setUserEmail(email);
+    const controller = new AbortController();
+    async function taiDanhSachSan() {
+      try {
+        const response = await api.get('/san', { signal: controller.signal });
+        if (!controller.signal.aborted) setDanhSachSan(response.data);
+      } catch (error) {
+        if (!controller.signal.aborted) setThongBaoLoi(layThongBaoLoi(error, 'Không thể tải danh sách sân.'));
+      } finally {
+        if (!controller.signal.aborted) setDangTai(false);
+      }
     }
-    taiDanhSachSan();
+    void taiDanhSachSan();
+    return () => controller.abort();
   }, []);
-
-  const taiDanhSachSan = async () => {
-    try {
-      const response = await api.get('/san');
-      setDanhSachSan(response.data);
-    } catch (error) {
-      console.error('Không thể tải danh sách sân từ server:', error);
-    } finally {
-      setDangTai(false);
-    }
-  };
 
   const handleDangXuat = () => {
     localStorage.removeItem('token');
@@ -102,6 +97,7 @@ export default function TrangChu() {
         </header>
 
         <main className="p-6 space-y-6">
+          {thongBaoLoi && <div role="alert" className="p-4 text-red-700 bg-red-100 rounded-xl">{thongBaoLoi}</div>}
           <div className="relative bg-gradient-to-r from-[#064e3b] via-[#047857] to-[#10b981] rounded-2xl p-8 text-white shadow-lg overflow-hidden">
             <div className="relative z-10 max-w-xl">
               <span className="bg-emerald-800/60 text-emerald-200 text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider border border-emerald-600/40">
@@ -131,7 +127,7 @@ export default function TrangChu() {
                   <div key={san.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition flex flex-col">
                     <div className="relative h-40 bg-gray-100">
                       <img 
-                        src={san.hinhAnh || "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60"} 
+                        src={san.anhDaiDien || "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60"}
                         alt={san.tenSan} 
                         className="w-full h-full object-cover" 
                       />

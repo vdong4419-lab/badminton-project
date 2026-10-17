@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { layThongBaoLoi } from '../services/api';
+import { tienViet } from '../utils/hienThi';
 
 export default function LichSuDatSan() {
   const navigate = useNavigate();
@@ -9,42 +10,42 @@ export default function LichSuDatSan() {
   const [thongBaoLoi, setThongBaoLoi] = useState('');
   const [lyDoHuy, setLyDoHuy] = useState('');
   const [dangHuyId, setDangHuyId] = useState(null);
-
-  const taiLichSuDatSan = async () => {
-    setDangTai(true);
-    setThongBaoLoi('');
-    try {
-      const response = await api.get('/dat-san/lich-su');
-      setDanhSachDatSan(response.data);
-    } catch (error) {
-      setThongBaoLoi('Không thể tải lịch sử đặt sân. Vui lòng thử lại!');
-    } finally {
-      setDangTai(false);
-    }
-  };
+  const [dangGui, setDangGui] = useState(false);
+  const [lanTai, setLanTai] = useState(0);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Vui lòng đăng nhập để xem lịch sử đặt sân!');
-      navigate('/dang-nhap');
-      return;
+    const controller = new AbortController();
+    async function taiLichSuDatSan() {
+      setDangTai(true);
+      setThongBaoLoi('');
+      try {
+        const response = await api.get('/dat-san/lich-su', { signal: controller.signal });
+        if (!controller.signal.aborted) setDanhSachDatSan(response.data);
+      } catch (error) {
+        if (!controller.signal.aborted) setThongBaoLoi(layThongBaoLoi(error, 'Không thể tải lịch sử đặt sân.'));
+      } finally {
+        if (!controller.signal.aborted) setDangTai(false);
+      }
     }
-    taiLichSuDatSan();
-  }, [navigate]);
+    void taiLichSuDatSan();
+    return () => controller.abort();
+  }, [lanTai]);
 
   const handleHuyDon = async (id) => {
+    if (dangGui) return;
     if (!window.confirm('Bạn có chắc chắn muốn hủy đơn đặt sân này không?')) return;
+    setDangGui(true);
     try {
-      await api.put(`/dat-san/${id}/huy`, null, {
-        params: { lyDoHuy: lyDoHuy || 'Khách hàng hủy' }
-      });
+      await api.put(`/dat-san/${id}/huy`, { lyDoHuy: lyDoHuy.trim() || 'Khách hàng hủy' });
       alert('Hủy đơn đặt sân thành công!');
       setDangHuyId(null);
       setLyDoHuy('');
-      taiLichSuDatSan();
+      setLanTai(value => value + 1);
     } catch (error) {
-      alert('Lỗi hủy đơn: ' + (error.response?.data || error.message));
+      alert(layThongBaoLoi(error, 'Không thể hủy đơn. Vui lòng thử lại.'));
+      if (error.response?.status === 409) setLanTai(value => value + 1);
+    } finally {
+      setDangGui(false);
     }
   };
 
@@ -121,7 +122,7 @@ export default function LichSuDatSan() {
                             ? 'bg-red-100 text-red-700' 
                             : 'bg-emerald-100 text-emerald-700'
                         }`}>
-                          {laDaHuy ? 'Đã hủy' : (don.trangThai || 'Đã xác nhận')}
+                          {{ CHO_XAC_NHAN: 'Chờ xác nhận', DA_XAC_NHAN: 'Đã xác nhận', DA_HOAN_THANH: 'Đã hoàn thành', DA_HUY: 'Đã hủy' }[don.trangThai] || don.trangThai}
                         </span>
                       </div>
                       
@@ -137,12 +138,12 @@ export default function LichSuDatSan() {
                           {don.chiTietDatSans && don.chiTietDatSans.map((chiTiet, idx) => {
                             const san = chiTiet.lichSan?.san;
                             const khungGio = chiTiet.lichSan?.khungGio;
-                            const ngayChoi = chiTiet.lichSan?.ngay;
+                            const ngayChoi = chiTiet.lichSan?.ngayChoi;
                             return (
                               <div key={idx} className="flex flex-wrap items-center justify-between text-xs bg-white p-2 rounded-lg border border-gray-200">
                                 <span className="font-semibold text-gray-800">{san?.tenSan || 'Sân cầu lông'} ({san?.loaiSan || 'Tiêu chuẩn'})</span>
                                 <span className="text-gray-600">📅 {ngayChoi} | ⏰ {khungGio?.gioBatDau} - {khungGio?.gioKetThuc}</span>
-                                <span className="font-bold text-emerald-600">{chiTiet.gia?.toLocaleString()} đ</span>
+                                <span className="font-bold text-emerald-600">{tienViet(chiTiet.donGia)}</span>
                               </div>
                             );
                           })}
@@ -153,15 +154,16 @@ export default function LichSuDatSan() {
                     <div className="flex flex-col items-end justify-between w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0 border-gray-100 gap-3">
                       <div className="text-right">
                         <span className="text-xs text-gray-400 block">Tổng tiền thanh toán</span>
-                        <span className="text-lg font-black text-emerald-600">{don.tongTien ? don.tongTien.toLocaleString() + ' đ' : '0 đ'}</span>
+                        <span className="text-lg font-black text-emerald-600">{tienViet(don.tongTien)}</span>
                       </div>
 
-                      {!laDaHuy && (
+                      {don.coTheHuy && (
                         <div>
                           {dangHuyId === don.id ? (
                             <div className="space-y-2 w-full md:w-60">
                               <input 
                                 type="text"
+                                maxLength={500}
                                 placeholder="Nhập lý do hủy..."
                                 value={lyDoHuy}
                                 onChange={(e) => setLyDoHuy(e.target.value)}
@@ -170,6 +172,7 @@ export default function LichSuDatSan() {
                               <div className="flex space-x-2">
                                 <button 
                                   onClick={() => handleHuyDon(don.id)}
+                                  disabled={dangGui}
                                   className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-1.5 rounded-lg transition"
                                 >
                                  Xác nhận hủy

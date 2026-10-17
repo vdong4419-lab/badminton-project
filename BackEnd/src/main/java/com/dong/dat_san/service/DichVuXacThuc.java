@@ -8,6 +8,11 @@ import com.dong.dat_san.repository.KhoDuLieuVaiTro;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 @Service
 public class DichVuXacThuc {
@@ -21,10 +26,15 @@ public class DichVuXacThuc {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Transactional
     public String dangKyTaiKhoan(YeuCauDangKy yeuCau) {
+        String email = yeuCau.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (yeuCau.getMatKhau().getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu tối đa 72 byte UTF-8.");
+        }
         // Kiểm tra email đã tồn tại chưa
-        if (khoDuLieuNguoiDung.findByEmail(yeuCau.getEmail()).isPresent()) {
-            throw new RuntimeException("Email này đã được sử dụng!");
+        if (khoDuLieuNguoiDung.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email này đã được sử dụng!");
         }
 
         // Mặc định lấy vai trò CUSTOMER
@@ -32,14 +42,15 @@ public class DichVuXacThuc {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy vai trò mặc định trong hệ thống!"));
 
         NguoiDung nguoiDung = new NguoiDung();
-        nguoiDung.setHoTen(yeuCau.getHoTen());
-        nguoiDung.setEmail(yeuCau.getEmail());
-        nguoiDung.setSoDienThoai(yeuCau.getSoDienThoai());
+        nguoiDung.setHoTen(yeuCau.getHoTen().trim());
+        nguoiDung.setEmail(email);
+        String phone = yeuCau.getSoDienThoai();
+        nguoiDung.setSoDienThoai(phone == null || phone.isBlank() ? null : phone.trim());
         // Mã hóa mật khẩu bằng BCrypt
         nguoiDung.setMatKhauBam(passwordEncoder.encode(yeuCau.getMatKhau()));
         nguoiDung.setVaiTro(vaiTroCustomer);
 
-        khoDuLieuNguoiDung.save(nguoiDung);
+        khoDuLieuNguoiDung.saveAndFlush(nguoiDung);
 
         return "Đăng ký tài khoản thành công cho email: " + yeuCau.getEmail();
     }

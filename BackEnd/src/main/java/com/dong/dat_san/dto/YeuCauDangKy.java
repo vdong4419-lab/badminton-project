@@ -1,9 +1,19 @@
 package com.dong.dat_san.dto;
 
+import jakarta.validation.constraints.*;
+
 public class YeuCauDangKy {
+    @NotBlank(message = "Họ tên không được để trống")
+    @Size(max = 100, message = "Họ tên tối đa 100 ký tự")
     private String hoTen;
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không hợp lệ")
+    @Size(max = 254, message = "Email tối đa 254 ký tự")
     private String email;
+    @Pattern(regexp = "^$|^\\+?[0-9]{9,15}$", message = "Số điện thoại phải gồm 9–15 chữ số, có thể bắt đầu bằng +")
     private String soDienThoai;
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 8, max = 72, message = "Mật khẩu phải có 8–72 ký tự")
     private String matKhau;
 
     public YeuCauDangKy() {}

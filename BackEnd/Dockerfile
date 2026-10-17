@@ -2,6 +2,7 @@
 FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /app
 COPY . .
+RUN chmod +x mvnw
 RUN ./mvnw clean package -DskipTests
 
 # Giai đoạn 2: Chạy ứng dụng với image Java nhẹ hơn
