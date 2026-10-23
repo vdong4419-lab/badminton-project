@@ -35,8 +35,12 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(String email) {
+        return generateToken(email, 0);
+    }
+
+    public String generateToken(String email, long passwordVersion) {
         Date now = new Date();
-        return Jwts.builder().setSubject(email).setIssuedAt(now)
+        return Jwts.builder().setSubject(email).claim("pv", passwordVersion).setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + expirationMs))
                 .signWith(signingKey, SignatureAlgorithm.HS512).compact();
     }
@@ -44,6 +48,12 @@ public class JwtTokenProvider {
     public String getEmailFromJWT(String token) {
         return Jwts.parserBuilder().setSigningKey(signingKey).build()
                 .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public long getPasswordVersion(String token) {
+        Number version = Jwts.parserBuilder().setSigningKey(signingKey).build()
+                .parseClaimsJws(token).getBody().get("pv", Number.class);
+        return version == null ? 0 : version.longValue();
     }
 
     public boolean validateToken(String token) {

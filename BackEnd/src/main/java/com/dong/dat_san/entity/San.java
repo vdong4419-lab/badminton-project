@@ -53,6 +53,9 @@ public class San {
     }
     public String getMoTa() { return moTa; }
     public String getAnhDaiDien() { return anhDaiDien; }
+    public void setMoTa(String value) { moTa = value; }
+    public void setAnhDaiDien(String value) { anhDaiDien = value; }
+    public void setDangHoatDong(boolean value) { dangHoatDong = value; }
     public void setTenSan(String tenSan) {
     this.tenSan = tenSan;
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import api, { layThongBaoLoi } from '../services/api';
-import { ngayHomNay, tienViet } from '../utils/hienThi';
+import { ngayHomNay, tienViet, thoiGianViet } from '../utils/hienThi';
+import ChuongThongBao from '../components/ChuongThongBao';
 
 export default function TrangDatLich() {
   const { sanId } = useParams();
@@ -14,6 +15,21 @@ export default function TrangDatLich() {
   const [thongBaoLoi, setThongBaoLoi] = useState('');
   const [dangDat, setDangDat] = useState(false);
   const [lanTai, setLanTai] = useState(0);
+  const [ketQuaBaoGia, setKetQuaBaoGia] = useState(null);
+  const baoGia = ketQuaBaoGia?.ids === suatDaChọn ? ketQuaBaoGia.data : null;
+  const loiBaoGia = ketQuaBaoGia?.ids === suatDaChọn ? ketQuaBaoGia.loi : '';
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!suatDaChọn.length) return () => controller.abort();
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.post('/dat-san/bao-gia', { danhSachLichSanIds: suatDaChọn }, { signal: controller.signal });
+        if (!controller.signal.aborted) setKetQuaBaoGia({ ids: suatDaChọn, data, loi: '' });
+      } catch (error) { if (!controller.signal.aborted) setKetQuaBaoGia({ ids: suatDaChọn, data: null, loi: layThongBaoLoi(error, 'Chưa tính được giá. Vui lòng chọn lại suất.') }); }
+    }, 250);
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [suatDaChọn]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,7 +66,7 @@ export default function TrangDatLich() {
       .reduce((tong, suat) => tong + Number(suat.gia || 0), 0);
 
   const handleDatSan = async () => {
-    if (dangDat || dangTai) return;
+    if (dangDat || dangTai || !baoGia) return;
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Vui lòng đăng nhập trước khi đặt sân!');
@@ -70,8 +86,8 @@ export default function TrangDatLich() {
         danhSachLichSanIds: suatDaChọn
       });
 
-      alert('Đặt sân thành công! Mã đơn: ' + response.data.maDat);
-      navigate('/lich-su');
+      alert('Đặt sân thành công! Mã đơn: ' + response.data.maDat + '\nHạn chờ xác nhận: ' + thoiGianViet(response.data.hetHanGiuChoLuc));
+      navigate(`/thanh-toan/${response.data.id}`);
     } catch (error) {
       alert(layThongBaoLoi(error, 'Không thể đặt sân. Vui lòng thử lại.'));
       if (error.response?.status === 409) setLanTai(value => value + 1);
@@ -96,12 +112,14 @@ export default function TrangDatLich() {
             <span>📅</span>
             <span>Sân Đã Đặt</span>
           </a>
+          <Link to="/ca-nhan" className="block rounded-xl px-4 py-3 font-medium text-gray-400 hover:bg-gray-800 hover:text-white">👤 Trang cá nhân</Link>
         </nav>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-xs">
           <h1 className="text-lg font-bold text-gray-800">Chọn Khung Giờ & Đặt Sân</h1>
+          <ChuongThongBao />
           <button 
             onClick={() => navigate('/')}
             className="px-4 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
@@ -111,6 +129,7 @@ export default function TrangDatLich() {
         </header>
 
         <main className="p-6 max-w-4xl mx-auto w-full space-y-6">
+          <Link to="/ca-nhan" className="inline-block text-sm font-semibold text-emerald-700">Xem quyền lợi thành viên →</Link>
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Chọn ngày chơi</label>
@@ -183,14 +202,17 @@ export default function TrangDatLich() {
             )}
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-md border border-emerald-100 flex items-center justify-between">
+          {loiBaoGia && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{loiBaoGia}<button className="ml-3 underline" onClick={() => setLanTai(v => v + 1)}>Tải lại lịch</button></p>}
+          <div className="bg-white p-5 rounded-2xl shadow-md border border-emerald-100 flex flex-wrap gap-4 items-center justify-between">
             <div>
+              {baoGia?.soTienGiam > 0 && <p className="mb-2 text-sm text-emerald-700">Tiền sân {tienViet(baoGia.tamTinh)} · Ưu đãi {baoGia.hangThanhVien} {baoGia.tyLeGiam}%: −{tienViet(baoGia.soTienGiam)}</p>}
               <span className="text-xs text-gray-500 block">Tổng cộng thanh toán:</span>
-              <span className="text-xl font-black text-emerald-600">{tienViet(tongTien)}</span>
+              <span className="text-xl font-black text-emerald-600">{tienViet(baoGia?.tongTien ?? tongTien)}</span>
+              {suatDaChọn.length > 0 && !baoGia && !loiBaoGia && <p role="status" className="mt-1 text-xs text-slate-500">Đang tính ưu đãi...</p>}
             </div>
             <button 
               onClick={handleDatSan}
-              disabled={suatDaChọn.length === 0 || dangDat || dangTai}
+              disabled={suatDaChọn.length === 0 || dangDat || dangTai || !baoGia}
               className={`px-6 py-3 rounded-xl font-bold text-sm shadow-md transition ${
                 suatDaChọn.length === 0 
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 

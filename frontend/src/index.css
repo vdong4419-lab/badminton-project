@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+.khach-page .kh-card { border: 1px solid #e2e8f0; border-radius: 1.25rem; background-color: white; padding: 1.5rem; }
+.khach-page .kh-heading { font-size: 1.125rem; font-weight: 750; color: #0f172a; }
+.khach-page .kh-label { display: block; font-size: .875rem; font-weight: 600; color: #334155; }
+.khach-page .kh-input { box-sizing: border-box; display: block; width: 100%; margin-top: .5rem; border: 1px solid #cbd5e1; border-radius: .75rem; padding: .75rem; font-weight: 400; }
+.khach-page .kh-primary, .khach-page .kh-secondary { display: inline-block; border-radius: .75rem; padding: .7rem 1rem; font-size: .875rem; font-weight: 650; }
+.khach-page .kh-primary { background: #047857; color: white; border: 1px solid #047857; }
+.khach-page .kh-secondary { background: white; color: #334155; border: 1px solid #cbd5e1; }
+.khach-page .kh-error { background: #fef2f2; color: #b91c1c; padding: 1rem; border-radius: .75rem; font-size: .875rem; }
+.khach-page .kh-success { background: #ecfdf5; color: #065f46; padding: 1rem; border-radius: .75rem; font-size: .875rem; }
+.khach-page button:disabled { cursor: not-allowed; opacity: .5; }
+.khach-page input:focus-visible, .khach-page button:focus-visible, .khach-page a:focus-visible { outline: 2px solid #059669; outline-offset: 3px; }
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -12,3 +24,15 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* Dashboard controls are scoped to the operations workspace. */
+.ql-page .ql-title { font-size: 1.5rem; font-weight: 750; }
+.ql-page .ql-card { border: 1px solid #e2e8f0; border-radius: 1rem; background: white; padding: 1.25rem; }
+.ql-page .ql-input { display: block; width: 100%; margin-top: .35rem; padding: .6rem .75rem; border: 1px solid #cbd5e1; border-radius: .65rem; background: white; font-size: .875rem; }
+.ql-page .ql-button, .ql-page .ql-button-primary { border: 1px solid #cbd5e1; border-radius: .65rem; padding: .6rem .9rem; font-size: .875rem; font-weight: 600; background: white; }
+.ql-page .ql-button-primary { background: #4338ca; border-color: #4338ca; color: white; }
+.ql-page button:disabled { opacity: .45; cursor: not-allowed; }
+.ql-page .ql-input:focus-visible, .ql-page button:focus-visible, .ql-page a:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+.ql-page .ql-error { background: #fee2e2; color: #991b1b; border-radius: .75rem; padding: .85rem; }
+.ql-page .ql-success { background: #d1fae5; color: #065f46; border-radius: .75rem; padding: .85rem; }
+.ql-page .ql-table { width: 100%; border-collapse: collapse; font-size: .875rem; text-align: left; }
+.ql-page .ql-table th, .ql-page .ql-table td { padding: .75rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }

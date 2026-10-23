@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api, { layThongBaoLoi } from '../services/api';
-import { tienViet } from '../utils/hienThi';
+import { tienViet, thoiGianViet, tenTrangThaiTien } from '../utils/hienThi';
+import LienKetQuanTri from '../components/LienKetQuanTri';
+import ChuongThongBao from '../components/ChuongThongBao';
 
 export default function LichSuDatSan() {
   const navigate = useNavigate();
@@ -28,16 +30,21 @@ export default function LichSuDatSan() {
       }
     }
     void taiLichSuDatSan();
-    return () => controller.abort();
+    const timer = setInterval(() => setLanTai(value => value + 1), 30000);
+    return () => { controller.abort(); clearInterval(timer); };
   }, [lanTai]);
 
   const handleHuyDon = async (id) => {
     if (dangGui) return;
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn đặt sân này không?')) return;
+    const don = danhSachDatSan.find(item => item.id === id);
+    const message = don?.thanhToan?.trangThai === 'DA_THANH_TOAN'
+      ? 'Hủy đơn và yêu cầu hoàn đủ ' + tienViet(don.thanhToan.soTien) + '? Quản trị viên sẽ xử lý hoàn tiền.'
+      : 'Bạn có chắc chắn muốn hủy đơn đặt sân này không?';
+    if (!window.confirm(message)) return;
     setDangGui(true);
     try {
-      await api.put(`/dat-san/${id}/huy`, { lyDoHuy: lyDoHuy.trim() || 'Khách hàng hủy' });
-      alert('Hủy đơn đặt sân thành công!');
+      const response = await api.put(`/dat-san/${id}/huy`, { lyDoHuy: lyDoHuy.trim() || 'Khách hàng hủy' });
+      alert(response.data);
       setDangHuyId(null);
       setLyDoHuy('');
       setLanTai(value => value + 1);
@@ -72,13 +79,17 @@ export default function LichSuDatSan() {
             <span>📅</span>
             <span>Sân Đã Đặt</span>
           </button>
+          <Link to="/ca-nhan" className="block rounded-xl px-4 py-3 font-medium text-gray-400 hover:bg-gray-800 hover:text-white">👤 Trang cá nhân</Link>
         </nav>
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+        <header className="bg-white border-b px-4 py-4 flex flex-wrap gap-3 items-center justify-between sticky top-0 z-20 shadow-xs">
           <h1 className="text-lg font-bold text-gray-800">Lịch Sử Đặt Sân Của Tôi</h1>
+          <LienKetQuanTri />
+          <ChuongThongBao />
+          <Link to="/ca-nhan" className="text-sm font-semibold text-emerald-700">Trang cá nhân</Link>
           <button 
             onClick={() => navigate('/')}
             className="px-4 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
@@ -129,6 +140,11 @@ export default function LichSuDatSan() {
                       <div className="text-xs text-gray-500 space-y-1">
                         <p>📅 Ngày tạo đơn: <span className="font-semibold text-gray-700">{don.ngayTao ? new Date(don.ngayTao).toLocaleString() : 'N/A'}</span></p>
                         {don.lyDoHuy && <p className="text-red-500">❌ Lý do hủy: {don.lyDoHuy}</p>}
+                        {don.hetHanGiuChoLuc && <p className="text-amber-700">Hạn chờ xác nhận: {thoiGianViet(don.hetHanGiuChoLuc)}. Quá hạn, đơn tự hủy và trả suất.</p>}
+                        <p className="font-semibold">Thanh toán: {tenTrangThaiTien(don.thanhToan)}</p>
+                        {don.chuyenKhoan?.daBaoLuc && don.thanhToan?.trangThai === 'CHUA_THANH_TOAN' && <p className="text-amber-700">Đã báo chuyển khoản, đang chờ sân đối chiếu.</p>}
+                        {don.thanhToan?.choHoanTien && <p className="text-amber-700">Đang chờ quản trị viên hoàn đủ {tienViet(don.thanhToan.soTien)} đã thu.</p>}
+                        {don.thanhToan?.thoiDiemHoanTien && <p>Đã hoàn {tienViet(don.thanhToan.soTien)} lúc {thoiGianViet(don.thanhToan.thoiDiemHoanTien)}</p>}
                       </div>
 
                       {/* Chi tiết các suất lịch trong đơn */}
@@ -155,7 +171,11 @@ export default function LichSuDatSan() {
                       <div className="text-right">
                         <span className="text-xs text-gray-400 block">Tổng tiền thanh toán</span>
                         <span className="text-lg font-black text-emerald-600">{tienViet(don.tongTien)}</span>
+                        {don.uuDai?.soTienGiam > 0 && <p className="mt-1 text-xs text-emerald-700">Đã giảm {tienViet(don.uuDai.soTienGiam)} ({don.uuDai.tyLeGiam}%)</p>}
                       </div>
+
+                      <Link to={`/thanh-toan/${don.id}`} className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">Xem đơn & thanh toán</Link>
+                      {don.trangThai === 'DA_HOAN_THANH' && <Link to={`/danh-gia/${don.id}`} className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800">★ Đánh giá sân & dịch vụ</Link>}
 
                       {don.coTheHuy && (
                         <div>
@@ -175,7 +195,7 @@ export default function LichSuDatSan() {
                                   disabled={dangGui}
                                   className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-1.5 rounded-lg transition"
                                 >
-                                 Xác nhận hủy
+                                 {don.thanhToan?.trangThai === 'DA_THANH_TOAN' ? 'Hủy và yêu cầu hoàn tiền' : 'Xác nhận hủy'}
                                 </button>
                                 <button 
                                   onClick={() => setDangHuyId(null)}
@@ -190,7 +210,7 @@ export default function LichSuDatSan() {
                               onClick={() => setDangHuyId(don.id)}
                               className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 transition"
                             >
-                              Hủy Đơn Này
+                              {don.thanhToan?.trangThai === 'DA_THANH_TOAN' ? 'Hủy và yêu cầu hoàn tiền' : 'Hủy Đơn Này'}
                             </button>
                           )}
                         </div>

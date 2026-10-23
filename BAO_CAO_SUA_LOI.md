@@ -1,5 +1,9 @@
 # Báo cáo sửa lỗi — 17/10/2026
 
+Cập nhật 20/10/2026: đã bổ sung xác minh email và quên mật khẩu bằng OTP Gmail, giới hạn thử đăng nhập, chuông thông báo trạng thái đơn, đánh giá và bình luận sau buổi chơi. Cấu hình Gmail và luồng sử dụng nằm trong [OTP_THONG_BAO_DANH_GIA.md](OTP_THONG_BAO_DANH_GIA.md). Gửi thư thật cần mật khẩu ứng dụng Gmail được nhập trên máy chạy backend.
+
+Cập nhật 18/10/2026: phần quản trị, thu / hoàn tiền, giữ suất 15 phút và dashboard đã được bổ sung sau báo cáo gốc này (xem DASHBOARD_VAN_HANH.md và QUAN_TRI_THANH_TOAN.md). Trang cá nhân, ưu đãi khách quen và chuyển khoản bằng QR được mô tả tại [KHACH_HANG_UU_DAI_QR.md](KHACH_HANG_UU_DAI_QR.md).
+
 Đã hoàn thành sửa các lỗi chính được xác định khi đối chiếu mã nguồn với csdl.txt. Đã kiểm thử bằng HTTP API với MySQL riêng; chưa kiểm thử giao diện bằng trình duyệt hoặc triển khai hệ thống thực tế.
 
 ## Đã hoàn thành
@@ -33,8 +37,8 @@ Các dòng lỗi SQL duplicate/injected test conflict trong log kiểm thử là
 ## Việc cần làm tiếp
 
 1. Chạy thử trên trình duyệt với database bạn đang dùng, sau khi cấu hình DB_USERNAME/DB_PASSWORD trong IDE. Làm lần lượt đăng ký, đăng nhập, chọn sân/giờ, xem lịch sử, hủy và đặt lại; kiểm tra trên điện thoại.
-2. Xây dựng màn hình/API admin xác nhận, hoàn thành đơn, quản lý lịch và ghi nhận thanh toán thủ công. Thiết kế hủy/hoàn tiền cho đơn đã thanh toán.
-3. Chốt chính sách giữ suất cho CHO_XAC_NHAN: hiện đơn giữ suất đến khi được hủy hoặc xử lý tiếp; nếu cần tự hết hạn, phải bổ sung thời điểm hết hạn và tác vụ giải phóng có transaction.
-4. Thêm refresh token, quên mật khẩu và giới hạn tần suất đăng nhập; sau đó cấu hình HTTPS, backup và kiểm thử trên môi trường triển khai.
+2. Đã bổ sung màn hình/API admin xác nhận, hoàn thành đơn, quản lý lịch và ghi nhận thu / hoàn tiền; tiếp tục kiểm tra thao tác thực tế với nhân viên và chủ sân.
+3. Đã áp dụng giữ suất 15 phút cho đơn chờ xác nhận và tác vụ tự giải phóng; tiếp tục kiểm tra luồng vận hành trong giờ cao điểm.
+4. Đã bổ sung quên mật khẩu bằng OTP và giới hạn tần suất đăng nhập. Tiếp theo là refresh token, HTTPS, sao lưu / thử khôi phục và kiểm thử trên môi trường triển khai.
 
-Xem HUONG_DAN_CHAY.md để chạy từ IDE, Docker hoặc chạy lại bộ kiểm thử. Chưa có giao diện quản trị/thanh toán/hoàn tiền và chưa coi đây là bản đã xác minh đầy đủ để vận hành thực tế.
+Xem HUONG_DAN_CHAY.md để chạy từ IDE, Docker hoặc chạy lại bộ kiểm thử. Đã có giao diện quản trị / chuyển khoản QR / hoàn tiền thủ công; vẫn cần kiểm tra giao diện và môi trường triển khai thực tế trước khi vận hành.

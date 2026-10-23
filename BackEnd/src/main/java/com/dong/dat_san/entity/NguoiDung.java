@@ -38,6 +38,7 @@ public class NguoiDung {
 
     // Getters và Setters cơ bản
     public Long getId() { return id; }
+    public LocalDateTime getNgayTao() { return ngayTao; }
     public void setId(Long id) { this.id = id; }
     public VaiTro getVaiTro() { return vaiTro; }
     public void setVaiTro(VaiTro vaiTro) { this.vaiTro = vaiTro; }

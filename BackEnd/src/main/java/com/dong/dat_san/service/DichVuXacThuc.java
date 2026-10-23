@@ -26,6 +26,8 @@ public class DichVuXacThuc {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired private DichVuOtp otp;
+
     @Transactional
     public String dangKyTaiKhoan(YeuCauDangKy yeuCau) {
         String email = yeuCau.getEmail().trim().toLowerCase(Locale.ROOT);
@@ -51,7 +53,8 @@ public class DichVuXacThuc {
         nguoiDung.setVaiTro(vaiTroCustomer);
 
         khoDuLieuNguoiDung.saveAndFlush(nguoiDung);
+        otp.dangKyMoi(nguoiDung);
 
-        return "Đăng ký tài khoản thành công cho email: " + yeuCau.getEmail();
+        return "Đã gửi mã OTP xác minh email. Vui lòng kiểm tra hộp thư để hoàn tất đăng ký.";
     }
 }

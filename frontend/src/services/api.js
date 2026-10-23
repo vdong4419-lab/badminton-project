@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { xoaPhien } from '../utils/hienThi';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8081/api',
@@ -26,8 +27,8 @@ export function layThongBaoLoi(error, fallback = 'Không thể thực hiện yê
 }
 
 api.interceptors.response.use(response => response, error => {
-  if (error.response?.status === 401 && !error.config?.url?.includes('/xac-thuc/')) {
-    ['token', 'userEmail', 'hoTen'].forEach(key => localStorage.removeItem(key));
+  if (error.response?.status === 401 && !['/xac-thuc/dang-nhap', '/xac-thuc/dang-ky'].includes(error.config?.url)) {
+    xoaPhien();
     if (window.location.pathname !== '/dang-nhap') window.location.assign('/dang-nhap');
   }
   return Promise.reject(error);

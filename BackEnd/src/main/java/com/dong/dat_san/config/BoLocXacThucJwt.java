@@ -19,10 +19,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class BoLocXacThucJwt extends OncePerRequestFilter {
     private final JwtTokenProvider tokens;
     private final UserDetailsService users;
+    private final com.dong.dat_san.service.PhienBanMatKhau versions;
 
-    public BoLocXacThucJwt(JwtTokenProvider tokens, UserDetailsService users) {
+    public BoLocXacThucJwt(JwtTokenProvider tokens, UserDetailsService users, com.dong.dat_san.service.PhienBanMatKhau versions) {
         this.tokens = tokens;
         this.users = users;
+        this.versions = versions;
     }
 
     @Override
@@ -37,7 +39,7 @@ public class BoLocXacThucJwt extends OncePerRequestFilter {
                 if (email != null && !email.isBlank()) {
                     UserDetails user = users.loadUserByUsername(email);
                     if (user.isEnabled() && user.isAccountNonLocked() && user.isAccountNonExpired()
-                            && user.isCredentialsNonExpired()) {
+                            && user.isCredentialsNonExpired() && tokens.getPasswordVersion(token) == versions.hienTai(email)) {
                         var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);

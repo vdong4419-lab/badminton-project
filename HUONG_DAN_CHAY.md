@@ -1,5 +1,9 @@
 # Chạy hệ thống đặt sân
 
+OTP Gmail, quên mật khẩu, chuông thông báo và đánh giá: xem [OTP_THONG_BAO_DANH_GIA.md](OTP_THONG_BAO_DANH_GIA.md). Gửi OTP thật cần cấu hình Gmail; có script `BackEnd/chay-gmail.ps1` để nhập mật khẩu ứng dụng dưới dạng ẩn khi chạy backend.
+
+Trang cá nhân, chính sách ưu đãi khách quen và hướng dẫn chuyển khoản bằng QR: xem [KHACH_HANG_UU_DAI_QR.md](KHACH_HANG_UU_DAI_QR.md). Khởi động lại backend sau khi cập nhật để tự tạo các bảng bổ sung, không cần nhập lại database.
+
 Backend cần Java 17, MySQL 8.0.16 trở lên (đã kiểm tra bằng image mysql:8.0). Frontend dùng Node.js phù hợp với Vite trong package.json.
 
 ## Chạy từ IDE với database hiện có
@@ -45,6 +49,31 @@ npm run dev
 
 Có thể tạo frontend/.env.local với VITE_API_URL=http://localhost:8081/api. Khi đưa lên máy chủ, đổi URL API và CORS sang địa chỉ thực tế. Vite đọc biến môi trường khi khởi động/build.
 
+## Khi Maven Wrapper hoặc cổng 8081 báo lỗi
+
+Trong PowerShell, chạy lệnh với tiền tố `.\` từ đúng thư mục:
+
+~~~powershell
+cd D:\badminton-project\BackEnd
+.\mvnw.cmd -v
+.\mvnw.cmd spring-boot:run
+~~~
+
+Lỗi `Cannot index into a null array` / `Cannot start maven from wrapper` do wrapper đọc `Target[0]` khi thư mục `.m2` không phải liên kết đã được sửa trong `BackEnd/mvnw.cmd`. Lệnh `-v` phải hiển thị Maven và Java 17 trước khi chạy ứng dụng.
+
+Nếu đã chạy backend bằng Docker, dừng riêng container backend trước khi chạy bằng Maven để giải phóng cổng 8081:
+
+~~~powershell
+docker stop badminton_backend
+.\mvnw.cmd spring-boot:run
+~~~
+
+MySQL cài trên máy dùng cổng 3306; MySQL của Compose dùng cổng 3307. Đây có thể là hai database có dữ liệu khác nhau. Chọn đúng địa chỉ bằng `DB_URL` và tài khoản bằng `DB_USERNAME` / `DB_PASSWORD` trong terminal chạy Maven. Cấu hình mặc định của dự án trỏ tới MySQL trên máy ở cổng 3306.
+
+Nếu log báo `Schema-validation: missing table [dat_san]`, database đang kết nối thiếu schema hoặc ứng dụng đang trỏ nhầm database. Kiểm tra `SELECT DATABASE(); SHOW TABLES;` trong MySQL. Chỉ nhập `BackEnd/database/001-init.sql` vào database mới dành cho dự án, chưa có bảng; không chạy lại script trên database đang có dữ liệu. Không đổi `ddl-auto=validate` để che lỗi thiếu bảng.
+
+Backend sẵn sàng khi log có `Tomcat started on port 8081` và `Started DatSanApplication`. Giữ terminal chạy; dùng Ctrl+C để dừng.
+
 ## Chạy Docker Compose
 
 Trong BackEnd, sao chép .env.example thành .env và điền MYSQL_ROOT_PASSWORD, DB_PASSWORD, JWT_SECRET. Compose tự đọc .env; chạy Spring Boot từ IDE không tự đọc file này.
@@ -88,11 +117,14 @@ npm run build
 npm run lint
 ~~~
 
-## Phạm vi hiện tại
+## Quản trị và chính sách giữ suất
 
-- Đơn mới ở trạng thái CHO_XAC_NHAN và chiếm suất đến khi được hủy hoặc xử lý tiếp.
-- Khách chỉ hủy đơn chưa bắt đầu, chưa thanh toán, đang chờ hoặc đã xác nhận.
-- Đơn đã thanh toán cần quy trình quản trị hủy/hoàn tiền; phiên bản này chưa cung cấp giao diện đó.
+Dashboard vận hành mới: xem DASHBOARD_VAN_HANH.md ở thư mục gốc. Khi khởi động, backend bổ sung vai trò STAFF và bảng nhật ký quản trị qua db/operations.sql. Admin có thể tạo tài khoản nhân viên ngay trong dashboard; tài khoản MySQL ứng dụng cần quyền tạo bảng trong database dự án.
+
+- Đơn mới ở CHO_XAC_NHAN và giữ suất tối đa 15 phút, không vượt giờ bắt đầu suất đầu tiên. Quá hạn tự hủy và giải phóng suất; admin xác nhận thì giữ lịch chính thức.
+- Khách chỉ hủy đơn của mình trước khi bắt đầu, đang chờ còn hạn hoặc đã xác nhận. Nếu đã thu tiền, đơn chuyển sang chờ admin hoàn đủ tiền đã thu.
+- Admin đăng nhập tại /dang-nhap, vào /quan-tri để xác nhận, thu tiền, hủy, hoàn tiền và hoàn thành đơn. Có bộ lọc chờ hoàn tiền và lịch sử xử lý.
 - Đăng ký luôn tạo CUSTOMER. Muốn có ADMIN, quản trị database gán vai trò ADMIN cho đúng tài khoản đã đăng ký; API đăng ký không nhận quyền từ client.
-- Refresh token, quên mật khẩu, giới hạn tần suất đăng nhập và màn hình quản trị xác nhận/thanh toán là các bước phát triển tiếp theo.
+- Chi tiết phân quyền, quy trình và API: xem QUAN_TRI_THANH_TOAN.md ở thư mục gốc. Chưa tích hợp chuyển tiền tự động/cổng thanh toán; admin xác nhận theo giao dịch thực tế.
+- Refresh token, quên mật khẩu và giới hạn tần suất đăng nhập là các bước phát triển tiếp theo.
 - Cần kiểm tra thêm trên trình duyệt và môi trường triển khai thực tế; build/lint và test API không thay thế kiểm thử giao diện.
